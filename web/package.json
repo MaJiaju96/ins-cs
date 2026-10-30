@@ -1,0 +1,23 @@
+{
+  "name": "ins-cs-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "ins-cs 对话窗：把一轮 TurnResult 的 blocks 渲染出来",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "element-plus": "2.5.6",
+    "vue": "3.4.21"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "4.6.2",
+    "typescript": "5.3.3",
+    "vite": "4.5.14",
+    "vue-tsc": "1.8.27"
+  }
+}

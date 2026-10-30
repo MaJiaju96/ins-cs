@@ -5,10 +5,12 @@
 ## 构建与验证
 
 ```bash
-mvn -q test                                    # 全部测试（16 个，秒级）
+mvn -q test                                    # 全部测试（18 个，秒级）
 mvn -q -pl cs-core test                        # 只跑内核
 mvn -q -DskipTests package                     # 打包
 java -jar cs-bot/target/cs-bot-0.1.0-SNAPSHOT.jar --server.port=18080
+
+cd web && npm run typecheck && npm run build    # 前端（Node 16 可跑，版本已锁死，别升）
 ```
 
 - JDK 17（不要用 21 语法：`switch` 模式匹配在 17 上是 preview，会让构建参数被污染——`BlockView` 里已踩过一次）
@@ -32,9 +34,11 @@ java -jar cs-bot/target/cs-bot-0.1.0-SNAPSHOT.jar --server.port=18080
 - 新增业务域 = 实现 `SubAgent` + 注册 Bean + `route_rule` 加一行。不要改分流器
 - 单元测试用 AssertJ；每个测试名描述**行为**（`低置信度时改反问，而不是硬分到一个域`），不描述方法名
 - 前端/线格式改动前，先看 `cs-bot/web/BlockView`：领域类型可以动，线格式不许抖
+- 线格式（`BlockView`/`ChatResponse`）改动必须同步三处：`web/src/types.ts`、`BlockRenderer.vue`、`ChatStreamControllerTest` 的事件断言
+- 前端 `npm` 依赖只增不改版本号；`web/package.json` 里没有 `^`，因为 Node 16 是硬约束
 
 ## 当前进度锚点
 
-- 已完成：P0 骨架（内核 IR + 分流四态 + 经纪域 Agent（确定性）+ trace/事件桩 + HTTP 入口 + 16 测试）
-- 下一步：见 `docs/roadmap.md` 的 P0 剩余项与 P1
+- 已完成：P0 骨架（内核 IR + 分流四态 + 经纪域 Agent（确定性）+ trace/事件桩 + HTTP 入口）+ SSE 流式 + Vue3 对话窗 + 18 测试
+- 下一步：见 `docs/roadmap.md` 的 P0 剩余项（接真模型 P0-10、落库 P1-1、handoff 列表 P0-11）与 P1
 - 做完任何一件事，在 `.agents/memory/` 追加一行流水，并更新「当前状态」

@@ -11,6 +11,7 @@ import com.inscs.core.ir.TurnResult;
 import com.inscs.core.port.EventPublisher;
 import com.inscs.core.port.RouteRuleProvider;
 import com.inscs.core.port.TraceSink;
+import com.inscs.core.port.TurnObserver;
 import com.inscs.core.route.TriageService;
 import com.inscs.core.text.FallbackMessages;
 import com.inscs.core.trace.TraceRecorder;
@@ -52,6 +53,14 @@ public final class ConversationService {
     }
 
     public TurnResult handle(TurnContext ctx) {
+        return handle(ctx, TurnObserver.NOOP);
+    }
+
+    /**
+     * 带观察者的版本：同步 JSON 接口用上面那个（NOOP），SSE 接口用这个。
+     * 两条路径走<b>同一段编排</b>——这是有意的，流式不能是第二条业务链路。
+     */
+    public TurnResult handle(TurnContext ctx, TurnObserver observer) {
         TraceRecorder recorder = new TraceRecorder(ctx.traceId());
 
         // 1) 分流
@@ -59,6 +68,7 @@ public final class ConversationService {
         RouteDecision route = triage.decide(ctx, ruleProvider.load());
         Span routeSpan = recorder.addCompleted(null, Span.Type.ROUTE, "triage",
                 System.currentTimeMillis() - t0, Span.Status.OK, null);
+        notifyRoute(observer, ctx, route);
 
         // 反问态：不进入任何域 Agent，直接返回澄清。
         // 注意反问也带编号候选（1/2/3），用户回数字走规则确定性分支，不再过模型。
@@ -69,7 +79,7 @@ public final class ConversationService {
             TurnResult clarify = result(ctx, route,
                     List.of(new Block.Text(FallbackMessages.of(msgKey))), recorder.spans());
             safeSink(clarify);
-            return clarify;
+            return finish(clarify, observer);
         }
 
         TurnContext routed = ctx.withRoute(route);
@@ -88,7 +98,7 @@ public final class ConversationService {
                     Map.of("traceId", ctx.traceId(), "seq", ctx.seq(),
                             "domain", route.domain().code(), "spanId", missSpan.spanId()));
             safeSink(miss);
-            return miss;
+            return finish(miss, observer);
         }
 
         // 3) 执行域 Agent
@@ -121,7 +131,32 @@ public final class ConversationService {
                 "domain", final_.route().domain().code(),
                 "state", final_.route().state().name(),
                 "degraded", final_.trace().degradedCount() > 0));
-        return final_;
+        return finish(final_, observer);
+    }
+
+    /** 逐个 block 通知，最后给完整结果。观察者出错只记日志：用户的话不能因为订阅端挂了而消失。 */
+    private static TurnResult finish(TurnResult result, TurnObserver observer) {
+        for (Block block : result.blocks()) {
+            try {
+                observer.onBlock(block);
+            } catch (RuntimeException ignored) {
+                // 下发给订阅端失败（如 SSE 断开），不影响本轮结果
+            }
+        }
+        try {
+            observer.onComplete(result);
+        } catch (RuntimeException ignored) {
+            // 同上
+        }
+        return result;
+    }
+
+    private static void notifyRoute(TurnObserver observer, TurnContext ctx, RouteDecision route) {
+        try {
+            observer.onRoute(ctx, route);
+        } catch (RuntimeException ignored) {
+            // 分流已经算出来了，推送失败不该让整轮失败
+        }
     }
 
     private static TurnResult result(TurnContext ctx, RouteDecision route, List<Block> blocks, List<Span> spans) {

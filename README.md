@@ -17,11 +17,11 @@ AI 保险客服机器人 + 评测台。一个可以长期长的个人项目：�
 
 ## 当前状态
 
-`P0 骨架`：能跑通「分流 → 域 Agent → 文本/卡片/追问/交接包 + 可见 trace」整条链，**默认不连任何中间件、不调任何模型**。
+`P0 骨架 + 对话界面`：能跑通「分流 → 域 Agent → 文本/卡片/追问/交接包 + 可见 trace」整条链，**默认不连任何中间件、不调任何模型**。前端是 Vue3 单页，用 SSE 逐块渲染（先到 `route`，再到 `block`，最后 `done`）。
 
 ```bash
 # 需要 JDK 17 + Maven
-mvn -q test                 # 16 个测试
+mvn -q test                 # 18 个测试
 mvn -q -DskipTests package
 java -jar cs-bot/target/cs-bot-0.1.0-SNAPSHOT.jar
 
@@ -32,11 +32,18 @@ curl -s -X POST http://127.0.0.1:8080/api/chat \
 
 返回里同时有：正文、编号候选、隐藏参数（引用哪条规则）、`route` 判定、`spans` 执行轨迹。
 
+流式接口 `POST /api/chat/stream` 出四类事件：`route` / `block` / `done` / `error`。前端跑起来：
+
+```bash
+cd web && npm install && npm run dev   # http://localhost:5173，/api 已代理到 8080
+```
+
 ## 结构
 
 ```
 cs-core/   内核。零运行时依赖（不依赖 Spring / Jackson），只有契约与 IR
-cs-bot/    客服服务。Spring Boot 适配层 + 唯一的 HTTP 入口
+cs-bot/    客服服务。Spring Boot 适配层 + HTTP 入口（同步 /api/chat、流式 /api/chat/stream）
+web/       对话界面。Vue3 + Vite + TS + Element Plus，手写 SSE 解析（不用 EventSource，因为要 POST）
 cs-lab/    评测台。P2 才有肉，现在是占位——但它的存在决定了 IR 的字段设计
 docs/      ADR、设计笔记、术语表、路线图
 .agents/   给下一个会话的自己看的项目上下文（project / memory），local/ 不提交

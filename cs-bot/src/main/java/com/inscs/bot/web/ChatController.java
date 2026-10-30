@@ -11,14 +11,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-import java.util.UUID;
 
 /**
- * 对话入口。整个 HTTP 层只有一个写接口。
+ * 同步对话入口。流式在 {@link ChatStreamController}，两者走同一段编排。
  *
- * <p>没有 SSE 版本是<b>故意的</b>：P0 先证明「一轮的语义是对的」，
- * 流式只是把同一份 {@code TurnResult} 切成块发出去，属于传输层的事。
- * 等 blocks 的形状稳定了再上 SSE，否则前端会跟着一起返工。
+ * <p>同步接口留着不是冗余：curl、评测台批量跑、断点调试都更适合「一次拿完整结果」。
+ * 流式只是同一份 {@code TurnResult} 换个发法。
  */
 @RestController
 @RequestMapping(value = "/api/chat", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -32,10 +30,8 @@ public class ChatController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ChatResponse chat(@RequestBody ChatRequest request) {
-        String traceId = newTraceId();
-        String conversationId = request.conversationId() == null || request.conversationId().isBlank()
-                ? "c-" + traceId
-                : request.conversationId();
+        String traceId = Ids.newTraceId();
+        String conversationId = Ids.conversationId(request.conversationId(), traceId);
 
         TurnContext ctx = TurnContext.newTurn(
                 traceId,
@@ -52,9 +48,5 @@ public class ChatController {
     @GetMapping("/health")
     public Map<String, Object> health() {
         return Map.of("status", "UP", "service", "cs-bot");
-    }
-
-    private static String newTraceId() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
 }

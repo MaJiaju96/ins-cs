@@ -4,6 +4,12 @@ target/
 *.war
 !.mvn/wrapper/maven-wrapper.jar
 
+# ---- 前端 ----
+web/node_modules/
+web/dist/
+web/.vite/
+*.tsbuildinfo
+
 # ---- ide ----
 .idea/
 *.iml

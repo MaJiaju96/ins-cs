@@ -5,7 +5,8 @@
 | 模块 | 职责 | 依赖 |
 | --- | --- | --- |
 | `cs-core` | IR（TurnContext/RunTrace/Block/TurnResult/RouteDecision/Span）、分流（RouteRule/RouteMatcher/TriageService）、编排（ConversationService）、五个 port 契约、TraceRecorder、降级话术 | **零运行时依赖**（仅测试期 junit+assertj） |
-| `cs-bot` | Spring Boot 适配：把 port 换成实现（P0 是桩）、唯一 HTTP 入口 `/api/chat`、线格式 `BlockView`/`ChatResponse` | cs-core + spring-boot-starter-web/validation |
+| `cs-bot` | Spring Boot 适配：把 port 换成实现（P0 是桩）、HTTP 入口（`/api/chat` 同步 + `/api/chat/stream` SSE）、线格式 `BlockView`/`ChatResponse` | cs-core + spring-boot-starter-web/validation |
+| `web` | 对话界面：Vue3 + Vite + TS + Element Plus，手写 SSE 帧解析（POST 不能用 EventSource），按需引入组件控制体积 | 独立 npm 工程，Vite 代理 `/api` → 8080 |
 | `cs-lab` | 评测台。P2 才有肉，现为占位 + `/health` | cs-core + starter-web |
 
 父 POM：`spring-boot-starter-parent 3.3.5`，`java.version=17`，`groupId=com.inscs`，`version=0.1.0-SNAPSHOT`。
@@ -35,16 +36,31 @@ cs-bot/src/main/resources/
 ├── application.yml               默认 profile：不连库、不调模型
 ├── application-dev.example.yml   dev profile 模板（Hikari 8、Flyway、Redis、LLM 端点）
 └── db/migration/                 V1__core_schema.sql（8 张表）、V2__demo_seed.sql（规则+虚构数据）
+
+web/src/
+├── api/chat.ts                   streamTurn：fetch + getReader 手工解 SSE 帧
+├── composables/useChat.ts        会话状态（reactive assistant 增量 push）
+├── components/                   ChatWindow、MessageBubble、BlockRenderer、RouteBadge、Composer、TraceDrawer
+├── types.ts                      线格式的 TS 镜像（与 BlockView/ChatResponse 一一对应）
+├── App.vue                       外壳：状态灯、看 trace、新会话
+└── styles.css                    全部样式（无 UI 框架布局，Element Plus 只做组件）
 ```
 
 ## 构建
 
 ```bash
-mvn -q test                                    # 16 个测试
+mvn -q test                                    # 18 个测试
 mvn -q -pl cs-core test
 mvn -q -DskipTests package
 java -jar cs-bot/target/cs-bot-0.1.0-SNAPSHOT.jar --server.port=18080
+
+cd web && npm install                          # Node 16 可用（版本已精确锁定）
+npm run typecheck                              # vue-tsc --noEmit
+npm run dev                                    # 5173，/api 代理到 8080
+npm run build                                  # dist/：JS 157KB(gzip 59)、CSS 53KB(gzip 8.6)
 ```
+
+前端一律精确锁版本（不带 `^`）：Node 16 下 `element-plus` 新版会拉进要求 Node ≥22 的 `@vueuse/core`。
 
 默认 profile 裸启动、不依赖任何中间件；`--spring.profiles.active=dev` 才连 MariaDB/Redis。
 
