@@ -1,0 +1,29 @@
+server:
+  port: 8080
+  # 2 Mbps 链路：响应压缩是花 CPU 省带宽，值。只压 JSON。
+  compression:
+    enabled: true
+    mime-types: application/json
+    min-response-size: 1024
+
+spring:
+  application:
+    name: ins-cs-bot
+  jackson:
+    default-property-inclusion: non_null
+  threads:
+    virtual:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.inscs: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{28} - %msg%n"
+
+# 默认 profile 不连任何中间件：mvn spring-boot:run 直接起得来。
+# 接库/接缓存/接 MQ 一律走 dev profile，见 application-dev.example.yml。
+ins-cs:
+  llm:
+    enabled: false

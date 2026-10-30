@@ -1,0 +1,51 @@
+# ---- build ----
+target/
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---- ide ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# ---- os ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- logs / runtime ----
+logs/
+*.log
+*.hprof
+/app-data/
+/data/
+
+# ---- 本地凭据：绝不入库 ----
+# 真实连接串、密码、密钥一律放这里；仓库内只保留 *.example
+.agents/local/
+application-local.yml
+application-local.yaml
+**/application-local.yml
+**/application-local.yaml
+*-secret.yml
+*.pem
+.env
+
+# 手机沙箱 dev 配置（含真实主机与口令）：
+# 仓库只提交 application-dev.example.yml
+cs-bot/src/main/resources/application-dev.yml
+
+# ---- 大文件不进口子 ----
+# 向量、trace 原始 dump、模型权重都不进 git
+*.bin
+*.faiss
+*.index
+vec/
+traces/

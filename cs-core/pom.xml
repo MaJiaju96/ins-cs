@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.inscs</groupId>
+        <artifactId>ins-cs</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>cs-core</artifactId>
+    <name>cs-core</name>
+    <description>IR 三层、路由与降级、端口接口、trace 记录器。零第三方依赖（仅测试用 JUnit）</description>
+
+    <!--
+      刻意保持零运行时依赖：
+      cs-core 只描述「一轮对话的形状」，不依赖 Spring / Jackson / 任何 SDK。
+      任何进程（cs-bot、cs-lab、离线脚本）都能直接消费这些类型。
+      JSON 序列化由上层（cs-bot）负责，避免把框架焊进契约。
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,52 @@
+# ============================================================================
+# dev profile 模板。复制成 application-dev.yml 后再填真实值。
+#   application-dev.yml 已在 .gitignore 里，永远不要提交。
+#   真正敏感的密码放 .agents/local/（同样不提交），这里只用占位符。
+# ============================================================================
+#
+# 链路现实（写在这里是为了每次连库都提醒自己）：
+#   手机 → frp 117.72.189.205 → 公网 2 Mbps，RTT 40–80ms。
+#   一条 SQL 一次往返 ≈ 60ms 起。所以：
+#     · 单请求 DB 往返 ≤3
+#     · 禁 SELECT *，强制分页
+#     · 连接池别开大（Hikari 5–10 就够，开大只会把弱网放大成雪崩）
+#
+spring:
+  datasource:
+    url: jdbc:mariadb://117.72.189.205:51467/ins_cs?useServerPrepStmts=true&cachePrepStmts=true&rewriteBatchedStatements=true&connectTimeout=5000&socketTimeout=15000
+    username: ${DB_USER:dev}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 2
+      connection-timeout: 5000
+      keepalive-time: 60000
+      max-lifetime: 600000
+      # 弱网上「探测即消耗」，不要开 leak detection 的开销
+      pool-name: ins-cs-hikari
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: 117.72.189.205
+      port: 52879
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 1
+
+ins-cs:
+  llm:
+    enabled: false
+    # OpenAI 兼容端点；DeepSeek / 本地 vLLM 都走这个形状
+    base-url: ${LLM_BASE_URL:}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:}
+    timeout-ms: 30000
